@@ -27,11 +27,13 @@ import java.util.Map;
  */
 public class didanwidg extends AppWidgetProvider {
 
+    final String UPDATE_ALL_WIDGETS = "update_all_widgets";
+
     void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
                          int appWidgetId) {
 
 
-        SharedPreferences sPref = context.getSharedPreferences("",context.MODE_PRIVATE);
+        SharedPreferences sPref = context.getSharedPreferences("", Context.MODE_PRIVATE);
         String login = sPref.getString("login","");
         String password  = sPref.getString("password","");
         Log.d("Preferences",login + ":" + password);
@@ -59,7 +61,7 @@ public class didanwidg extends AppWidgetProvider {
             updateAppWidget(context, appWidgetManager, appWidgetId);
         }
     }
-    final String UPDATE_ALL_WIDGETS = "update_all_widgets";
+
     @Override
     public void onEnabled(Context context) {
         super.onEnabled(context);
@@ -102,9 +104,11 @@ public class didanwidg extends AppWidgetProvider {
 
         final private String login;
         final private String password;
+        public String htmldocument = "";
+        public String days_count = "";
+        int WidgetId;
         private String balance ="";
         private  RemoteViews rv;
-        int WidgetId;
         private AppWidgetManager wgmanager;
         private Context context;
         UpdateBalTask(String login,String password, RemoteViews d,AppWidgetManager wg,int widid,Context ctx){
@@ -115,7 +119,7 @@ public class didanwidg extends AppWidgetProvider {
             this.WidgetId = widid;
             this.context = ctx;
         }
-        public String htmldocument = "";
+
         public String GetBalanceString(){
             try{
                 Document doc = Jsoup.parse(htmldocument);
@@ -131,6 +135,62 @@ public class didanwidg extends AppWidgetProvider {
 
         }
 
+        public Float GetBalanceFloat() {
+            try {
+                String temp = GetBalanceString();
+                temp = temp.replace(" ", "");
+                temp = temp.replace(",", ".");
+                temp = temp.replace("руб.", "");
+                return Float.parseFloat(temp);
+            } catch (Exception d) {
+                Log.e("ParseException", d.getMessage());
+                return 0.0f;
+            }
+
+        }
+
+        // Ручками забитые консты
+        public Float GetPacketPerDayFloat() {
+            try {
+                String temp = GetPacketString();
+
+                if (temp.contains("Пакет 33М"))
+                    return 3.94f;
+
+                if (temp.contains("Пакет 55М"))
+                    return 4.60f;
+
+                if (temp.contains("Пакет 99М"))
+                    return 6.60f;
+            } catch (Exception d) {
+                Log.e("FatalErrorLogin", d.getMessage());
+                return -1.0f;
+            }
+            return 0.0f;
+        }
+
+        public String GetPacketString() {
+            try {
+                Document doc = Jsoup.parse(htmldocument);
+                Elements all = doc.getElementsByTag("td");
+                if (all.get(7).text().contains("Пакет")) {
+                    Log.d("Data", all.get(7).text());
+                    return all.get(7).text();
+                } else {
+                    if (all.get(8).text().contains("Пакет")) {
+                        Log.d("Data", all.get(8).text());
+                        return all.get(8).text();
+                    }
+                }
+
+
+            } catch (Exception d) {
+                Log.e("FatalErrorLogin", d.getMessage());
+                return "";
+            }
+            return ""; //"" В случаи ошибок
+        }
+
         @NonNull
         private String getDocumentHTML(String login, String password) {
             try{
@@ -141,7 +201,7 @@ public class didanwidg extends AppWidgetProvider {
                 data.put("y", "45");
 
                 Log.d("GetBal","OK");
-                htmldocument = com.simbyos.didan.HttpRequest.post("http://didan.org").form(data).body();
+                htmldocument = com.simbyos.didan.HttpRequest.post("http://didan.org/index.php?act=billinfo").form(data).body();
                 if(htmldocument.contains("Баланс")) {
                     Log.d("GetBal", "Login Success");
                 }
@@ -167,11 +227,21 @@ public class didanwidg extends AppWidgetProvider {
         protected Void doInBackground(Void... params) {
             htmldocument = getDocumentHTML(login, password);
             String bal =  GetBalanceString();
+            String packet = GetPacketString();
             if(bal == ""){
                 balance ="Ошибка обновления";
             }
             else{
                 balance ="Баланс: "+ bal;
+                try {
+                    Float balanceFloat = GetBalanceFloat();
+                    Float packetPerDayFloat = GetPacketPerDayFloat();
+                    Float daysFloat = balanceFloat / packetPerDayFloat;
+                    int result = (int) Math.floor(daysFloat);
+                    this.days_count = "Осталось дней: " + String.valueOf(result);
+                } catch (Exception d) {
+                    Log.e("Task", d.getMessage());
+                }
             }
 
             return null;
@@ -182,12 +252,13 @@ public class didanwidg extends AppWidgetProvider {
             Log.d("Task","UpdateWidgetText");
             if(balance == "Ошибка обновления"){
         //        this.rv.setTextColor(R.id.name, Color.RED);
-                this.rv.setTextColor(R.id.balance, Color.WHITE);
+                this.rv.setTextColor(R.id.balance, Color.RED);
             }
             else{
       //          this.rv.setTextColor(R.id.name, Color.BLUE);
 
                 this.rv.setTextViewText(R.id.balance, balance);
+                this.rv.setTextViewText(R.id.day_count, days_count);
                 Log.d("Task","End");
                 this.rv.setTextColor(R.id.balance, Color.WHITE);
             }

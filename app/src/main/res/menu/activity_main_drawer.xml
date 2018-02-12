@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <item android:title="Информация">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_main_info"
+                    android:icon="@drawable/ic_account_circle_black_36dp"
+                    android:title="Основная информация" />
+            </group>
+        </menu>
+    </item>
+    <item android:title="Параметры">
+        <menu>
+            <item
+                android:id="@+id/nav_exit"
+                android:icon="@android:drawable/ic_menu_close_clear_cancel"
+                android:title="Выход" />
+        </menu>
+    </item>
+
+</menu>
