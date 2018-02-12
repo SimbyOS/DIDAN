@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">DIDAN</string>
-
+    <string name="app_name_login">DIDAN | Войти</string>
     <!-- Strings related to login -->
     <string name="prompt_email">Логин</string>
     <string name="prompt_password">Пароль</string>
@@ -11,4 +11,5 @@
     <string name="error_incorrect_password">Неправильный логин или пароль!</string>
     <string name="error_field_required">Заполните все поля!</string>
     <string name="permission_rationale">Необходимо разрешение на доступ к контактам!</string>
+    <string name="widgetstarttext">Баланс: 57 р.</string>
 </resources>
