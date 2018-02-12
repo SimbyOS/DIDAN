@@ -1,19 +1,25 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/llo"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#09C"
-    android:padding="@dimen/widget_margin">
+    android:background="@android:drawable/screen_background_dark_transparent"
+    android:orientation="vertical"
+    android:padding="@dimen/widget_margin"><![CDATA[>
 
-    <LinearLayout
-        android:id="@+id/llo"
+    ]]>
+
+    <ImageView
+        android:id="@+id/didan_logo"
+        android:layout_width="wrap_content"
+        android:layout_height="47dp"
+        android:scaleType="center"
+        android:src="@mipmap/ic_launcher_foreground" />
+
+    <TextView
+        android:id="@+id/balance"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/balance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Баланс: 57 р." />
-    </LinearLayout>
-</RelativeLayout>
+        android:layout_height="wrap_content"
+        android:text="@string/widgetstarttext"
+        android:textSize="20sp" />
+</LinearLayout>

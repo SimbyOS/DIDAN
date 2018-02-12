@@ -17,6 +17,7 @@ import android.widget.RemoteViews;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -115,57 +116,13 @@ public class didanwidg extends AppWidgetProvider {
             this.context = ctx;
         }
         public String htmldocument = "";
-        public String GetBalanceBlock(){
+        public String GetBalanceString(){
             try{
-
                 Document doc = Jsoup.parse(htmldocument);
-
-                Element balEl = doc.getElementById("money_block");
-
-                Log.d("Data", balEl.text());
-
-                return balEl.text();
-
-            }
-            catch(Exception d){
-                Log.e("FatalErrorLogin",d.getMessage());
-                return "";
-            }
-
-        }
-
-        public String GetNewTickets(){
-            try{
-                if(htmldocument != ""){
-                    if(htmldocument.contains(">Сообщения<")){
-                        return "";
-                    }
-                    else{ return "1";
-
-                    }
-                }
-
-
-            }
-            catch(Exception d){
-                Log.e("FatalErrorLogin",d.getMessage());
-                return "";
-            }
-            return "";}
-
-
-
-        public String GetBalance(){
-            try{
-
-                Document doc = Jsoup.parse(htmldocument);
-
-                Element balEl = doc.getElementById("money");
-
-                Log.d("Data", balEl.text());
-
-                return balEl.text();
-
+                Elements all = doc.getAllElements();
+                Element balanceEl = all.get(64); //index баласна (Да, да, парсинг html это плохо)
+                Log.d("Data", balanceEl.text());
+                return balanceEl.text();
             }
             catch(Exception d){
                 Log.e("FatalErrorLogin",d.getMessage());
@@ -184,13 +141,9 @@ public class didanwidg extends AppWidgetProvider {
                 data.put("y", "45");
 
                 Log.d("GetBal","OK");
-                String htmldocument = "";
                 htmldocument = com.simbyos.didan.HttpRequest.post("http://didan.org").form(data).body();
                 if(htmldocument.contains("Баланс")) {
                     Log.d("GetBal", "Login Success");
-                }
-                else {
-                    Log.d("GetBal", htmldocument);
                 }
                 return htmldocument;
             }
@@ -213,29 +166,34 @@ public class didanwidg extends AppWidgetProvider {
         @Override
         protected Void doInBackground(Void... params) {
             htmldocument = getDocumentHTML(login, password);
-            String bal =  GetBalance();
-            String blockbal = GetBalanceBlock();
-            if(bal == "" || blockbal == ""){
+            String bal =  GetBalanceString();
+            if(bal == ""){
                 balance ="Ошибка обновления";
             }
             else{
-                balance ="Баланс: "+ bal + "р.";
-                blockbalance = "Блок. средств: " + blockbal +" р.";
-            }
-
-            if(GetNewTickets() == "1"){
-                tickets = "1";
+                balance ="Баланс: "+ bal;
             }
 
             return null;
         }
-        public String blockbalance;
-        public String tickets = "";
         @Override
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
             Log.d("Task","UpdateWidgetText");
+            if(balance == "Ошибка обновления"){
+        //        this.rv.setTextColor(R.id.name, Color.RED);
+                this.rv.setTextColor(R.id.balance, Color.WHITE);
+            }
+            else{
+      //          this.rv.setTextColor(R.id.name, Color.BLUE);
 
+                this.rv.setTextViewText(R.id.balance, balance);
+                Log.d("Task","End");
+                this.rv.setTextColor(R.id.balance, Color.WHITE);
+            }
+
+
+            this.wgmanager.updateAppWidget(this.WidgetId, this.rv);
         }
     }
 }
