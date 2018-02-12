@@ -2,12 +2,48 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
-
+    <item android:title="Обновление информации">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_update_ui"
+                    android:checked="true"
+                    android:icon="@drawable/ic_update_ui"
+                    android:title="Обновить" />
+            </group>
+        </menu>
+    </item>
     <item android:title="Информация">
         <menu>
             <group android:checkableBehavior="single">
                 <item
+                    android:id="@+id/nav_balance_info"
+                    android:checkable="false"
+                    android:enabled="false"
+                    android:icon="@drawable/ic_balance_action"
+                    android:title="Баланс: 45.04 руб." />
+                <item
+                    android:id="@+id/nav_pocket_info"
+                    android:checkable="false"
+                    android:enabled="false"
+                    android:icon="@drawable/ic_action_name"
+                    android:title="Пакет: " />
+                <item
+                    android:id="@+id/nav_dayscount_info"
+                    android:checkable="false"
+                    android:enabled="false"
+                    android:icon="@drawable/ic_dayscount_action"
+                    android:title="Кол-во дней" />
+            </group>
+        </menu>
+    </item>
+
+    <item android:title="Навигация">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
                     android:id="@+id/nav_main_info"
+                    android:checked="true"
                     android:icon="@drawable/ic_account_circle_black_36dp"
                     android:title="Основная информация" />
             </group>

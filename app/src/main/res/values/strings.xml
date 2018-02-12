@@ -12,11 +12,12 @@
     <string name="error_field_required">Заполните все поля!</string>
     <string name="permission_rationale">Необходимо разрешение на доступ к контактам!</string>
     <string name="widgetstarttext">Баланс: 57 р.</string>
-    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_main">DIDAN Client</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Настройки</string>
     <string name="title_activity_login">DIDAN | Войти</string>
+    <string name="update_ui">Обновить</string>
 </resources>

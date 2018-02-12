@@ -124,7 +124,7 @@ public class didanwidg extends AppWidgetProvider {
             try{
                 Document doc = Jsoup.parse(htmldocument);
                 Elements all = doc.getAllElements();
-                Element balanceEl = all.get(64); //index баласна (Да, да, парсинг html это плохо)
+                Element balanceEl = all.get(64); //index баланса (Да, да, парсинг html это плохо)
                 Log.d("Data", balanceEl.text());
                 return balanceEl.text();
             }

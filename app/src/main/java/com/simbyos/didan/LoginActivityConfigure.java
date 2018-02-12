@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.appwidget.AppWidgetManager;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
@@ -96,6 +97,13 @@ public class LoginActivityConfigure extends AppCompatActivity implements LoaderC
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        SharedPreferences sPref = getSharedPreferences("", Context.MODE_PRIVATE);
+        String login = sPref.getString("login", "");
+        String password = sPref.getString("password", "");
+        mEmailView.setText(login);
+        mPasswordView.setText(password);
+        attemptLogin();
+
     }
 
     private void populateAutoComplete() {
