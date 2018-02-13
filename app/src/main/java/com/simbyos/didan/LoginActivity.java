@@ -30,10 +30,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -275,26 +279,45 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             mPassword = password;
         }
 
+        @NonNull
+        private String getDocumentHTML(String login, String password) {
+            try {
+                String htmldocument = "";
+                OkHttpClient client = new OkHttpClient();
+                RequestBody formBody = new okhttp3.FormBody.Builder()
+                        .add("xl", login)
+                        .add("xp", password)
+                        .add("x", "45")
+                        .add("y", "10")
+                        .build();
+                Request request = new Request.Builder()
+                        .url("http://didan.org/index.php?act=billinfo").post(formBody)
+                        .build();
+
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful())
+                        throw new IOException("Unexpected code " + response.toString());
+                    htmldocument = response.body().string();
+                } catch (Exception e) {
+                }
+
+                Log.d("GetBal", "OK");
+                if (htmldocument.contains("Баланс")) {
+                    Log.d("GetBal", "Login Success");
+                }
+                return htmldocument;
+            } catch (Exception d) {
+                return "";
+            }
+
+        }
+
         @Override
         protected Boolean doInBackground(Void... params) {
             try {
-                Map<String, String> data = new HashMap<String, String>();
-                data.put("xl", mEmail);
-                data.put("xp", mPassword);
-                data.put("x", "43");
-                data.put("y", "10");
 
-                Log.d("GetBal", "OK");
-                String htmldocument = "";
-                htmldocument = HttpRequest.post("http://didan.org").form(data).body();
-                if (htmldocument.contains("Баланс")) {
-                    Log.d("GetBal", "Login Success");
-                    return true;
-                } else {
-                    Log.d("GetBal", htmldocument);
-                    return false;
-                }
-
+                return getDocumentHTML(mEmail, mPassword).contains("Баланс");
 
             } catch (Exception d) {
                 Log.e("FatalErrorLogin", d.getMessage());

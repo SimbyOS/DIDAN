@@ -7,7 +7,8 @@
             <group android:checkableBehavior="single">
                 <item
                     android:id="@+id/nav_update_ui"
-                    android:checked="true"
+                    android:checkable="false"
+   
                     android:icon="@drawable/ic_update_ui"
                     android:title="Обновить" />
             </group>

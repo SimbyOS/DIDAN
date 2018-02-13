@@ -19,8 +19,12 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * Implementation of App Widget functionality.
@@ -36,7 +40,6 @@ public class didanwidg extends AppWidgetProvider {
         SharedPreferences sPref = context.getSharedPreferences("", Context.MODE_PRIVATE);
         String login = sPref.getString("login","");
         String password  = sPref.getString("password","");
-        Log.d("Preferences",login + ":" + password);
         // Construct the RemoteViews object
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.didanwidg);
 
@@ -193,21 +196,32 @@ public class didanwidg extends AppWidgetProvider {
 
         @NonNull
         private String getDocumentHTML(String login, String password) {
-            try{
-                Map<String, String> data = new HashMap<String, String>();
-                data.put("xl", login);
-                data.put("xp", password);
-                data.put("x", "10");
-                data.put("y", "45");
+            try {
+                OkHttpClient client = new OkHttpClient();
+                RequestBody formBody = new okhttp3.FormBody.Builder()
+                        .add("xl", login)
+                        .add("xp", password)
+                        .add("x", "45")
+                        .add("y", "10")
+                        .build();
+                Request request = new Request.Builder()
+                        .url("http://didan.org/index.php?act=billinfo").post(formBody)
+                        .build();
 
-                Log.d("GetBal","OK");
-                htmldocument = com.simbyos.didan.HttpRequest.post("http://didan.org/index.php?act=billinfo").form(data).body();
-                if(htmldocument.contains("Баланс")) {
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful())
+                        throw new IOException("Unexpected code " + response.toString());
+                    htmldocument = response.body().string();
+                } catch (Exception e) {
+                }
+
+                Log.d("GetBal", "OK");
+                if (htmldocument.contains("Баланс")) {
                     Log.d("GetBal", "Login Success");
                 }
                 return htmldocument;
-            }
-            catch (Exception d){
+            } catch (Exception d) {
                 return "";
             }
 
