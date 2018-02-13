@@ -1,5 +1,7 @@
 package com.simbyos.didan;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,7 +19,9 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.webkit.WebView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import org.jsoup.Jsoup;
@@ -41,7 +45,7 @@ public class MainActivity extends AppCompatActivity
     UpdateUI updateUI;
     NavigationView navigationView;
     WebView webInfo;
-
+    ProgressBar progressBar;
     public static boolean hasConnection(final Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
@@ -63,7 +67,7 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         setTitle(R.string.app_name);
-
+        this.progressBar = findViewById(R.id.progressBar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -126,9 +130,14 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         switch (id) {
-            case R.id.nav_exit: {
-                finish();
+            case R.id.update_ui_menu: {
+                updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
+                updateUI.execute();
                 break;
+            }
+            case R.id.menu_settings: {
+                Intent intent = new Intent(getBaseContext(), SettingsActivity.class);
+                startActivity(intent);
             }
         }
 
@@ -150,8 +159,29 @@ public class MainActivity extends AppCompatActivity
             }
 
         }
+        if (id == R.id.nav_contacts) {
+            ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
+            updateUI.execute();
+        }
         if (id == R.id.nav_exit) {
             finish();
+        }
+        if (id == R.id.nav_settings) {
+            Intent intent = new Intent(getBaseContext(), SettingsActivity.class);
+            startActivity(intent);
+        }
+        if (id == R.id.nav_account_exit) {
+            SharedPreferences sPref = getBaseContext().getSharedPreferences("", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sPref.edit();
+            editor.putString("login", "");
+            editor.putString("password", "");
+            editor.commit();
+            Intent mStartActivity = new Intent(getBaseContext(), MainActivity.class);
+            int mPendingIntentId = 123456;
+            PendingIntent mPendingIntent = PendingIntent.getActivity(getBaseContext(), mPendingIntentId, mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
+            AlarmManager mgr = (AlarmManager) getBaseContext().getSystemService(Context.ALARM_SERVICE);
+            mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+            System.exit(0);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -294,10 +324,13 @@ public class MainActivity extends AppCompatActivity
         public String GetInfoTable() {
             try {
                 String temphtml = "";
+                temphtml += "<h2>Основная информация</h2>";
                 Document doc = Jsoup.parse(htmldocument);
                 Element all = doc.getElementById("dle-content");
+                all.select("div.kbntnv").first().remove();
+                temphtml += all.html();
 
-                return all.child(1).html();
+                return temphtml;
 
             } catch (Exception d) {
                 Log.e("FatalErrorLogin", d.getMessage());
@@ -365,6 +398,8 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
+            webInfo.setVisibility(View.INVISIBLE);
             Log.d("Task Update UI", "Begin");
 
 
@@ -405,16 +440,162 @@ public class MainActivity extends AppCompatActivity
                 // Баланс в меню дровера
                 MenuItem balanceItem = menu.findItem(R.id.nav_balance_info);
                 balanceItem.setTitle(balance);
+                //Костыль рестарта при ошибке
+                if (balance == " логин") {
+                    RestartApp();
+                }
                 // Кол-во дней в зависимости от пакета
                 MenuItem daysc = menu.findItem(R.id.nav_dayscount_info);
                 daysc.setTitle(days_count);
                 // Пакет
                 MenuItem pock = menu.findItem(R.id.nav_pocket_info);
                 pock.setTitle(pocket_name);
-                webInfo.loadData(this.tableInfo, "text/html; charset=utf-8", "utf-8");
+                String css = "<style>" +
+                        "table {\n" +
+                        " border-collapse: collapse;\n" +
+                        "    text-align: start;" +
+                        "color: black;" +
+
+                        "}\n" +
+                        "\n" +
+                        "table, th, td {\n" +
+                        "    border: 1px solid black;\n " +
+                        "     color: black;" +
+                        "    text-align: start;" +
+                        "" +
+
+                        "}" +
+                        "</style>";
+                webInfo.loadData(css + this.tableInfo, "text/html; charset=utf-8", "utf-8");
                 Log.d("Update UI Task", pocket_name + balance + days_count);
+                progressBar.setVisibility(View.INVISIBLE);
+                webInfo.setVisibility(View.VISIBLE);
+            }
+
+        }
+
+        public void RestartApp() {
+            Intent mStartActivity = new Intent(context, MainActivity.class);
+            int mPendingIntentId = 123456;
+            PendingIntent mPendingIntent = PendingIntent.getActivity(context, mPendingIntentId, mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
+            AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+            System.exit(0);
+        }
+    }
+
+
+    //Класс обновления информации контактов (Обратной связи)
+
+    public class ContactsUpdateUI extends AsyncTask<Void, Void, Void> {
+
+        private final String mEmail;
+        private final String mPassword;
+        String htmldocument = "";
+        String htmluouput = "";
+
+        ContactsUpdateUI(String email, String password) {
+            mEmail = email;
+            mPassword = password;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
+            webInfo.setVisibility(View.INVISIBLE);
+            Log.d("Task Update UI", "Begin");
+
+
+        }
+
+        @NonNull
+        private String getDocumentHTML(String login, String password) {
+            try {
+                String htmldocument = "";
+                OkHttpClient client = new OkHttpClient();
+                RequestBody formBody = new okhttp3.FormBody.Builder()
+                        .add("xl", login)
+                        .add("xp", password)
+                        .add("x", "45")
+                        .add("y", "10")
+                        .build();
+                Request request = new Request.Builder()
+                        .url("http://didan.org/?act=contacts").post(formBody)
+                        .build();
+
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful())
+                        throw new IOException("Unexpected code " + response.toString());
+                    htmldocument = response.body().string();
+                } catch (Exception e) {
+                }
+
+                Log.d("GetBal", "OK");
+                if (htmldocument.contains("Баланс")) {
+                    Log.d("GetBal", "Login Success");
+                }
+                return htmldocument;
+            } catch (Exception d) {
+                return "";
+            }
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                String css = "<h2> Телефоны</h2>" +
+                        "<style>" +
+                        "table {\n" +
+                        " border-collapse: collapse;\n" +
+                        "    text-align: start;" +
+                        "color: black;" +
+                        " display: table;" +
+                        "    text-align: center;" +
+                        "    font-style: normal;" +
+                        "    font-size: high;" +
+                        "}\n" +
+                        "\n" +
+                        "table, th, td {\n" +
+                        "" +
+                        "    border: 1px solid black;\n " +
+                        "     color: black;" +
+                        "    text-align: center;" +
+                        "    font-style: normal;" +
+                        "    font-size: high;" +
+                        "" +
+
+                        "}" +
+                        "</style> <table>";
+                htmldocument = getDocumentHTML(mEmail, mPassword);
+                Document doc = Jsoup.parse(htmldocument);
+
+                Elements all = doc.select("table.tbl5");
+
+                all.get(3).select("div.spoiler").remove();
+                htmluouput = css + all.get(0).html() + "</table> <h2>Отделы</h2> <table>" + all.get(3).html();
+            } catch (Exception d) {
+                Log.e("FatalErrorLogin", d.getMessage());
 
             }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            //
+            webInfo.loadData(htmluouput, "text/html; charset=utf-8", "utf-8");
+
+            //
+            progressBar.setVisibility(View.INVISIBLE);
+            webInfo.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected void onCancelled() {
 
         }
     }

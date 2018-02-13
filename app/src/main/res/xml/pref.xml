@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="Внешний вид">
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_dayscount_action"
+            android:key="widg"
+            android:summary="Показывать счётчик кол-ва дней в виджете"
+            android:title="Показывать счётчик"></CheckBoxPreference>
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_balance_action"
+            android:key="notif"
+            android:summary="Уведомлять о низком балансе"
+            android:title="Уведомления"></CheckBoxPreference>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Уведомления">
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@mipmap/ic_launcher_foreground"
+            android:key="news"
+            android:summary="Получать последние новости от DIDAN"
+            android:title="Получать новости" />
+    </PreferenceCategory>
+</PreferenceScreen>

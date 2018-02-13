@@ -1,6 +1,8 @@
 package com.simbyos.didan;
 
 import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -10,7 +12,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -26,6 +30,9 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import static android.content.Context.MODE_PRIVATE;
+import static android.content.Context.NOTIFICATION_SERVICE;
+
 /**
  * Implementation of App Widget functionality.
  */
@@ -37,7 +44,7 @@ public class didanwidg extends AppWidgetProvider {
                          int appWidgetId) {
 
 
-        SharedPreferences sPref = context.getSharedPreferences("", Context.MODE_PRIVATE);
+        SharedPreferences sPref = context.getSharedPreferences("", MODE_PRIVATE);
         String login = sPref.getString("login","");
         String password  = sPref.getString("password","");
         // Construct the RemoteViews object
@@ -109,11 +116,13 @@ public class didanwidg extends AppWidgetProvider {
         final private String password;
         public String htmldocument = "";
         public String days_count = "";
+        public int results = 0;
         int WidgetId;
         private String balance ="";
         private  RemoteViews rv;
         private AppWidgetManager wgmanager;
         private Context context;
+
         UpdateBalTask(String login,String password, RemoteViews d,AppWidgetManager wg,int widid,Context ctx){
             this.login = login;
             this.password = password;
@@ -227,7 +236,6 @@ public class didanwidg extends AppWidgetProvider {
 
         }
 
-
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -251,8 +259,8 @@ public class didanwidg extends AppWidgetProvider {
                     Float balanceFloat = GetBalanceFloat();
                     Float packetPerDayFloat = GetPacketPerDayFloat();
                     Float daysFloat = balanceFloat / packetPerDayFloat;
-                    int result = (int) Math.floor(daysFloat);
-                    this.days_count = "Осталось дней: " + String.valueOf(result);
+                    results = (int) Math.floor(daysFloat);
+                    this.days_count = "Осталось дней: " + String.valueOf(results);
                 } catch (Exception d) {
                     Log.e("Task", d.getMessage());
                 }
@@ -272,7 +280,29 @@ public class didanwidg extends AppWidgetProvider {
       //          this.rv.setTextColor(R.id.name, Color.BLUE);
 
                 this.rv.setTextViewText(R.id.balance, balance);
-                this.rv.setTextViewText(R.id.day_count, days_count);
+                SharedPreferences sPref = PreferenceManager.getDefaultSharedPreferences(context);
+                if (sPref.getBoolean("widg", true)) {
+                    this.rv.setTextViewText(R.id.day_count, days_count);
+                } else {
+                    this.rv.setTextViewText(R.id.day_count, "");
+                }
+                if (sPref.getBoolean("notif", true)) {
+                    if (results < 3) {
+                        NotificationCompat.Builder builder =
+                                new NotificationCompat.Builder(context)
+                                        .setSmallIcon(R.mipmap.ic_launcher)
+                                        .setContentTitle("DIDAN | Низкий баланс")
+                                        .setContentText("Cрок действия пакета:" + results);
+
+                        Notification notification = builder.build();
+
+                        NotificationManager notificationManager =
+                                (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+                        notificationManager.notify(1, notification);
+                    }
+
+                }
+
                 Log.d("Task","End");
                 this.rv.setTextColor(R.id.balance, Color.WHITE);
             }
