@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity
         mpassword = sPref.getString("password", "");
         if (mlogin == "" || mpassword == "") {
             Intent intentLogin = new Intent(getBaseContext(), LoginActivity.class);
-            startActivity(intentLogin);
+            startActivityForResult(intentLogin, 1);
         } else {
             if (hasConnection(getBaseContext())) {
                 this.mCheckLoginTask = new UserLoginTask(mlogin, mpassword);
@@ -161,12 +161,19 @@ public class MainActivity extends AppCompatActivity
             if (!hasConnection(getBaseContext())) {
                 Toast.makeText(getBaseContext(), "Ошибка соединения, проверьте подключение!", Toast.LENGTH_LONG);
             } else {
-                updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
-                updateUI.execute();
+                if (action == "maininfo") {
+                    updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
+                    updateUI.execute();
+                }
+                if (action == "contacts") {
+                    ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
+                    updateUI.execute();
+                }
             }
 
         }
         if (id == R.id.nav_main_info) {
+            action = "maininfo";
             updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
             updateUI.execute();
         }
