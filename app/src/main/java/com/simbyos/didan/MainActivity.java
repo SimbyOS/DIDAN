@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity
     NavigationView navigationView;
     WebView webInfo;
     ProgressBar progressBar;
+    String action = "maininfo";
     public static boolean hasConnection(final Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
@@ -131,8 +132,14 @@ public class MainActivity extends AppCompatActivity
 
         switch (id) {
             case R.id.update_ui_menu: {
-                updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
-                updateUI.execute();
+                if (action == "maininfo") {
+                    updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
+                    updateUI.execute();
+                }
+                if (action == "contacts") {
+                    ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
+                    updateUI.execute();
+                }
                 break;
             }
             case R.id.menu_settings: {
@@ -159,7 +166,12 @@ public class MainActivity extends AppCompatActivity
             }
 
         }
+        if (id == R.id.nav_main_info) {
+            updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
+            updateUI.execute();
+        }
         if (id == R.id.nav_contacts) {
+            action = "contacts";
             ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
             updateUI.execute();
         }
