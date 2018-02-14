@@ -2,23 +2,95 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
-
+    <item android:title="Обновление информации">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_update_ui"
+                    android:checkable="false"
+   
+                    android:icon="@drawable/ic_update_ui"
+                    android:title="Обновить" />
+            </group>
+        </menu>
+    </item>
     <item android:title="Информация">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_balance_info"
+                    android:checkable="false"
+                    android:enabled="true"
+                    android:icon="@drawable/ic_balance_action"
+                    android:title="Баланс: 45.04 руб." />
+                <item
+                    android:id="@+id/nav_pocket_info"
+                    android:checkable="false"
+                    android:enabled="true"
+                    android:icon="@drawable/ic_action_name"
+                    android:title="Пакет: " />
+                <item
+                    android:id="@+id/nav_dayscount_info"
+                    android:checkable="false"
+                    android:enabled="true"
+                    android:icon="@drawable/ic_dayscount_action"
+                    android:title="Кол-во дней" />
+            </group>
+        </menu>
+    </item>
+
+    <item android:title="Навигация">
         <menu>
             <group android:checkableBehavior="single">
                 <item
                     android:id="@+id/nav_main_info"
                     android:icon="@drawable/ic_account_circle_black_36dp"
                     android:title="Основная информация" />
+                <item
+                    android:id="@+id/nav_payment_history"
+                    android:icon="@drawable/ic_nav_payment_history"
+                    android:title="История платежей" />
+                <item
+                    android:id="@+id/nav_uslugi"
+                    android:icon="@drawable/ic_dns_black_36dp"
+                    android:title="Услуги" />
+                <item
+                    android:id="@+id/nav_help"
+                    android:icon="@android:drawable/ic_menu_help"
+                    android:title="Помощь" />
+
+
             </group>
+        </menu>
+    </item>
+    <item android:title="Обратная связь">
+        <menu>
+            <item
+                android:id="@+id/nav_contacts"
+                android:icon="@drawable/ic_contacts_action"
+                android:title="Контакты" />
         </menu>
     </item>
     <item android:title="Параметры">
         <menu>
             <item
+                android:id="@+id/nav_settings"
+                android:checkable="false"
+                android:icon="@drawable/ic_menu_manage"
+                android:title="Настройки уведомлений" />
+        </menu>
+    </item>
+    <item android:title="Выход">
+        <menu>
+            <item
+                android:id="@+id/nav_account_exit"
+                android:checkable="false"
+                android:icon="@drawable/ic_menu_send"
+                android:title="Выход из аккаунта" />
+            <item
                 android:id="@+id/nav_exit"
                 android:icon="@android:drawable/ic_menu_close_clear_cancel"
-                android:title="Выход" />
+                android:title="Закрыть" />
         </menu>
     </item>
 

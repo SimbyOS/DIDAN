@@ -1,6 +1,8 @@
 package com.simbyos.didan;
 
 import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -10,7 +12,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -19,8 +23,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import static android.content.Context.MODE_PRIVATE;
+import static android.content.Context.NOTIFICATION_SERVICE;
 
 /**
  * Implementation of App Widget functionality.
@@ -33,10 +44,9 @@ public class didanwidg extends AppWidgetProvider {
                          int appWidgetId) {
 
 
-        SharedPreferences sPref = context.getSharedPreferences("", Context.MODE_PRIVATE);
+        SharedPreferences sPref = context.getSharedPreferences("", MODE_PRIVATE);
         String login = sPref.getString("login","");
         String password  = sPref.getString("password","");
-        Log.d("Preferences",login + ":" + password);
         // Construct the RemoteViews object
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.didanwidg);
 
@@ -106,11 +116,13 @@ public class didanwidg extends AppWidgetProvider {
         final private String password;
         public String htmldocument = "";
         public String days_count = "";
+        public int results = 0;
         int WidgetId;
         private String balance ="";
         private  RemoteViews rv;
         private AppWidgetManager wgmanager;
         private Context context;
+
         UpdateBalTask(String login,String password, RemoteViews d,AppWidgetManager wg,int widid,Context ctx){
             this.login = login;
             this.password = password;
@@ -124,7 +136,7 @@ public class didanwidg extends AppWidgetProvider {
             try{
                 Document doc = Jsoup.parse(htmldocument);
                 Elements all = doc.getAllElements();
-                Element balanceEl = all.get(64); //index баласна (Да, да, парсинг html это плохо)
+                Element balanceEl = all.get(64); //index баланса (Да, да, парсинг html это плохо)
                 Log.d("Data", balanceEl.text());
                 return balanceEl.text();
             }
@@ -193,26 +205,36 @@ public class didanwidg extends AppWidgetProvider {
 
         @NonNull
         private String getDocumentHTML(String login, String password) {
-            try{
-                Map<String, String> data = new HashMap<String, String>();
-                data.put("xl", login);
-                data.put("xp", password);
-                data.put("x", "10");
-                data.put("y", "45");
+            try {
+                OkHttpClient client = new OkHttpClient();
+                RequestBody formBody = new okhttp3.FormBody.Builder()
+                        .add("xl", login)
+                        .add("xp", password)
+                        .add("x", "45")
+                        .add("y", "10")
+                        .build();
+                Request request = new Request.Builder()
+                        .url("http://didan.org/index.php?act=billinfo").post(formBody)
+                        .build();
 
-                Log.d("GetBal","OK");
-                htmldocument = com.simbyos.didan.HttpRequest.post("http://didan.org/index.php?act=billinfo").form(data).body();
-                if(htmldocument.contains("Баланс")) {
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful())
+                        throw new IOException("Unexpected code " + response.toString());
+                    htmldocument = response.body().string();
+                } catch (Exception e) {
+                }
+
+                Log.d("GetBal", "OK");
+                if (htmldocument.contains("Баланс")) {
                     Log.d("GetBal", "Login Success");
                 }
                 return htmldocument;
-            }
-            catch (Exception d){
+            } catch (Exception d) {
                 return "";
             }
 
         }
-
 
         @Override
         protected void onPreExecute() {
@@ -237,8 +259,8 @@ public class didanwidg extends AppWidgetProvider {
                     Float balanceFloat = GetBalanceFloat();
                     Float packetPerDayFloat = GetPacketPerDayFloat();
                     Float daysFloat = balanceFloat / packetPerDayFloat;
-                    int result = (int) Math.floor(daysFloat);
-                    this.days_count = "Осталось дней: " + String.valueOf(result);
+                    results = (int) Math.floor(daysFloat);
+                    this.days_count = "Осталось дней: " + String.valueOf(results);
                 } catch (Exception d) {
                     Log.e("Task", d.getMessage());
                 }
@@ -258,7 +280,29 @@ public class didanwidg extends AppWidgetProvider {
       //          this.rv.setTextColor(R.id.name, Color.BLUE);
 
                 this.rv.setTextViewText(R.id.balance, balance);
-                this.rv.setTextViewText(R.id.day_count, days_count);
+                SharedPreferences sPref = PreferenceManager.getDefaultSharedPreferences(context);
+                if (sPref.getBoolean("widg", true)) {
+                    this.rv.setTextViewText(R.id.day_count, days_count);
+                } else {
+                    this.rv.setTextViewText(R.id.day_count, "");
+                }
+                if (sPref.getBoolean("notif", true)) {
+                    if (results < 3) {
+                        NotificationCompat.Builder builder =
+                                new NotificationCompat.Builder(context)
+                                        .setSmallIcon(R.mipmap.ic_launcher)
+                                        .setContentTitle("DIDAN | Низкий баланс")
+                                        .setContentText("Cрок действия пакета:" + results);
+
+                        Notification notification = builder.build();
+
+                        NotificationManager notificationManager =
+                                (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+                        notificationManager.notify(1, notification);
+                    }
+
+                }
+
                 Log.d("Task","End");
                 this.rv.setTextColor(R.id.balance, Color.WHITE);
             }

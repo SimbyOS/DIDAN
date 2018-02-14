@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="daysCountPref">
+        <item>1 день</item>
+        <item>2 дня</item>
+        <item>3 дня</item>
+    </string-array>
+</resources>

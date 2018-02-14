@@ -1,0 +1,18 @@
+[
+  {
+    "outputType": {
+      "type": "APK"
+    },
+    "apkInfo": {
+      "type": "MAIN",
+      "splits": [],
+      "versionCode": 2
+    },
+    "path": "app-release.apk",
+    "properties": {
+      "packageId": "com.simbyos.didan",
+      "split": "",
+      "minSdkVersion": "14"
+    }
+  }
+]
