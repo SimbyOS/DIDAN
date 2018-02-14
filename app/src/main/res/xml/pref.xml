@@ -14,6 +14,17 @@
             android:key="notif"
             android:summary="Уведомлять о низком балансе"
             android:title="Уведомления"></CheckBoxPreference>
+        <ListPreference
+            android:defaultValue="1"
+            android:dialogIcon="@drawable/ic_action_name"
+            android:dialogMessage="Выберите кол-во дней пакета услуг для уведомления"
+            android:dialogTitle="Выбор"
+            android:enabled="false"
+            android:entries="@array/daysCountPref"
+            android:entryValues="@array/daysCountPref"
+            android:icon="@drawable/ic_update_ui"
+            android:key="list_preference_day_count"
+            android:title="Кол-во дней" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Уведомления">
 

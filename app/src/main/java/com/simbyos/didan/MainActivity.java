@@ -21,7 +21,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.jsoup.Jsoup;
@@ -30,6 +32,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.Date;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -132,14 +135,7 @@ public class MainActivity extends AppCompatActivity
 
         switch (id) {
             case R.id.update_ui_menu: {
-                if (action == "maininfo") {
-                    updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
-                    updateUI.execute();
-                }
-                if (action == "contacts") {
-                    ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
-                    updateUI.execute();
-                }
+                UpdateUIAction();
                 break;
             }
             case R.id.menu_settings: {
@@ -151,6 +147,25 @@ public class MainActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
+    public void UpdateUIAction() {
+        if (!hasConnection(getBaseContext())) {
+            Toast.makeText(getBaseContext(), "Ошибка соединения, проверьте подключение!", Toast.LENGTH_LONG);
+        } else {
+            if (action == "maininfo") {
+                updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
+                updateUI.execute();
+            }
+            if (action == "contacts") {
+                ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
+                updateUI.execute();
+            }
+            if (action == "payment_history") {
+                PaymentHistoryUpdateTask paymentHistoryUpdateTask = new PaymentHistoryUpdateTask(mlogin, mpassword);
+                paymentHistoryUpdateTask.execute();
+            }
+        }
+    }
+
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
@@ -158,19 +173,13 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_update_ui) {
-            if (!hasConnection(getBaseContext())) {
-                Toast.makeText(getBaseContext(), "Ошибка соединения, проверьте подключение!", Toast.LENGTH_LONG);
-            } else {
-                if (action == "maininfo") {
-                    updateUI = new UpdateUI(mlogin, mpassword, getBaseContext());
-                    updateUI.execute();
-                }
-                if (action == "contacts") {
-                    ContactsUpdateUI updateUI = new ContactsUpdateUI(mlogin, mpassword);
-                    updateUI.execute();
-                }
-            }
+            UpdateUIAction();
 
+        }
+        if (id == R.id.nav_payment_history) {
+            action = "payment_history";
+            PaymentHistoryUpdateTask paymentHistoryUpdateTask = new PaymentHistoryUpdateTask(mlogin, mpassword);
+            paymentHistoryUpdateTask.execute();
         }
         if (id == R.id.nav_main_info) {
             action = "maininfo";
@@ -486,9 +495,17 @@ public class MainActivity extends AppCompatActivity
                         "}" +
                         "</style>";
                 webInfo.loadData(css + this.tableInfo, "text/html; charset=utf-8", "utf-8");
+                webInfo.setWebViewClient(new WebViewClient() {
+
+                    public void onPageFinished(WebView view, String url) {
+                        progressBar.setVisibility(View.INVISIBLE);
+                        webInfo.setVisibility(View.VISIBLE);
+                    }
+                });
                 Log.d("Update UI Task", pocket_name + balance + days_count);
-                progressBar.setVisibility(View.INVISIBLE);
-                webInfo.setVisibility(View.VISIBLE);
+
+                TextView tv = findViewById(R.id.header);
+                tv.setText("DIDAN | Логин: " + login);
             }
 
         }
@@ -594,7 +611,7 @@ public class MainActivity extends AppCompatActivity
                 Elements all = doc.select("table.tbl5");
 
                 all.get(3).select("div.spoiler").remove();
-                htmluouput = css + all.get(0).html() + "</table> <h2>Отделы</h2> <table>" + all.get(3).html();
+                htmluouput = css + all.get(0).html() + "</table> <h2>Терминалы</h2> <table>" + all.get(3).html();
             } catch (Exception d) {
                 Log.e("FatalErrorLogin", d.getMessage());
 
@@ -608,6 +625,128 @@ public class MainActivity extends AppCompatActivity
             //
             webInfo.loadData(htmluouput, "text/html; charset=utf-8", "utf-8");
 
+            //
+            progressBar.setVisibility(View.INVISIBLE);
+            webInfo.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected void onCancelled() {
+
+        }
+    }
+
+    //Класс обновления информации контактов (Обратной связи)
+
+    public class PaymentHistoryUpdateTask extends AsyncTask<Void, Void, Void> {
+
+        private final String mEmail;
+        private final String mPassword;
+        String htmldocument = "";
+        String htmluouput = "";
+
+        PaymentHistoryUpdateTask(String email, String password) {
+            mEmail = email;
+            mPassword = password;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressBar.setVisibility(View.VISIBLE);
+            webInfo.setVisibility(View.INVISIBLE);
+            Log.d("Task Update UI", "Begin");
+
+
+        }
+
+        @NonNull
+        private String getDocumentHTML(String login, String password) {
+            try {
+                String curDate = (String) android.text.format.DateFormat.format("yyyyMM", new Date());
+                String htmldocument = "";
+                OkHttpClient client = new OkHttpClient();
+                RequestBody formBody = new okhttp3.FormBody.Builder()
+                        .add("xl", login)
+                        .add("xp", password)
+                        .add("x", "45")
+                        .add("y", "10")
+                        .build();
+                Request request = new Request.Builder()
+
+                        .url("http://didan.org/index.php?act=billhistory&date=" + curDate + "&type=all").post(formBody)
+                        .build();
+
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful())
+                        throw new IOException("Unexpected code " + response.toString());
+                    htmldocument = response.body().string();
+                } catch (Exception e) {
+                }
+
+                Log.d("GetBal", "OK");
+                if (htmldocument.contains("Баланс")) {
+                    Log.d("GetBal", "Login Success");
+                }
+                return htmldocument;
+            } catch (Exception d) {
+                return "";
+            }
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                String css = "<h2> История платежей</h2>" +
+                        "<style>" +
+                        "table {\n" +
+                        " border-collapse: collapse;\n" +
+                        "    text-align: start;" +
+                        "color: black;" +
+                        " display: table;" +
+                        "    text-align: center;" +
+                        "    font-style: normal;" +
+                        "    font-size: high;" +
+                        "}\n" +
+                        "\n" +
+                        "table, th, td {\n" +
+                        "" +
+                        "    border: 1px solid black;\n " +
+                        "     color: black;" +
+                        "    text-align: center;" +
+                        "    font-style: normal;" +
+                        "    font-size: high;" +
+                        "" +
+
+                        "}" +
+                        "</style> <table>";
+                htmldocument = getDocumentHTML(mEmail, mPassword);
+                Document doc = Jsoup.parse(htmldocument);
+
+                Elements all = doc.select("table.tbl4");
+                //       all.get(3).select("div.spoiler").remove();
+                htmluouput = css + all.get(0).html();
+            } catch (Exception d) {
+                Log.e("FatalErrorLogin", d.getMessage());
+
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            //
+            webInfo.loadData(htmluouput, "text/html; charset=utf-8", "utf-8");
+            webInfo.setWebViewClient(new WebViewClient() {
+
+                public void onPageFinished(WebView view, String url) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    webInfo.setVisibility(View.VISIBLE);
+                }
+            });
             //
             progressBar.setVisibility(View.INVISIBLE);
             webInfo.setVisibility(View.VISIBLE);

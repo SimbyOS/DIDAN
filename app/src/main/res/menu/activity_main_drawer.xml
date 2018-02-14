@@ -47,6 +47,14 @@
                     android:icon="@drawable/ic_account_circle_black_36dp"
                     android:title="Основная информация" />
                 <item
+                    android:id="@+id/nav_payment_history"
+                    android:icon="@drawable/ic_nav_payment_history"
+                    android:title="История платежей" />
+                <item
+                    android:id="@+id/nav_uslugi"
+                    android:icon="@drawable/ic_dns_black_36dp"
+                    android:title="Услуги" />
+                <item
                     android:id="@+id/nav_help"
                     android:icon="@android:drawable/ic_menu_help"
                     android:title="Помощь" />
