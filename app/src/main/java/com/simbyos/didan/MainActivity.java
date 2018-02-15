@@ -48,11 +48,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Date;
 
 import okhttp3.OkHttpClient;
@@ -388,57 +384,6 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
-    public class UpdateApp extends AsyncTask<String, Void, Void> {
-        private Context context;
-
-        public void setContext(Context contextf) {
-            context = contextf;
-        }
-
-        @Override
-        protected Void doInBackground(String... arg0) {
-            try {
-                URL url = new URL(arg0[0].toString()); // Your given URL.
-
-                HttpURLConnection c = (HttpURLConnection) url.openConnection();
-                c.setRequestMethod("GET");
-                c.setDoOutput(true);
-                c.connect(); // Connection Complete here.!
-
-                //Toast.makeText(getApplicationContext(), "HttpURLConnection complete.", Toast.LENGTH_SHORT).show();
-
-                String PATH = Environment.getExternalStorageDirectory() + "/download/";
-                File file = new File(PATH); // PATH = /mnt/sdcard/download/
-                if (!file.exists()) {
-                    file.mkdirs();
-                }
-                File outputFile = new File(file, "DIDAN.apk");
-                FileOutputStream fos = new FileOutputStream(outputFile);
-
-                //      Toast.makeText(getApplicationContext(), "SD Card Path: " + outputFile.toString(), Toast.LENGTH_SHORT).show();
-
-                InputStream is = c.getInputStream(); // Get from Server and Catch In Input Stream Object.
-
-                byte[] buffer = new byte[1024];
-                int len1 = 0;
-                while ((len1 = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, len1); // Write In FileOutputStream.
-                }
-                fos.close();
-                is.close();//till here, it works fine - .apk is download to my sdcard in download file.
-                // So plz Check in DDMS tab and Select your Emualtor.
-
-                //Toast.makeText(getApplicationContext(), "Download Complete on SD Card.!", Toast.LENGTH_SHORT).show();
-                //download the APK to sdcard then fire the Intent.
-            } catch (IOException e) {
-                Toast.makeText(getApplicationContext(), "Error! " +
-                        e.toString(), Toast.LENGTH_LONG).show();
-            }
-            return null;
-        }
-    }
-
     /**
      * Чек авторизации на сервере, в случаи ошибки вызываем LoginActivity в случаи успеха UpdateUI , мда MVP тут и не пахнет ...
      */
