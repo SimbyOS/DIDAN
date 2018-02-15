@@ -1,19 +1,29 @@
 package com.simbyos.didan;
 
+import android.Manifest;
 import android.app.AlarmManager;
+import android.app.DownloadManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -26,12 +36,23 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.javiersantos.appupdater.AppUpdater;
+import com.github.javiersantos.appupdater.AppUpdaterUtils;
+import com.github.javiersantos.appupdater.enums.AppUpdaterError;
+import com.github.javiersantos.appupdater.enums.UpdateFrom;
+import com.github.javiersantos.appupdater.objects.Update;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Date;
 
 import okhttp3.OkHttpClient;
@@ -41,15 +62,20 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+
+    private static final int PERMISSION_REQUEST_CODE = 2228;
     public SharedPreferences sPref;
+    public AppUpdater appUpdater;
     String mlogin = "";
     String mpassword = "";
     AsyncTask<Void, Void, Boolean> mCheckLoginTask;
     UpdateUI updateUI;
     NavigationView navigationView;
     WebView webInfo;
+    Context context;
     ProgressBar progressBar;
     String action = "maininfo";
+
     public static boolean hasConnection(final Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
@@ -65,18 +91,164 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_CODE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+
+                } else {
+
+                    AlertDialog.Builder d = new AlertDialog.Builder(this);
+                    d.setMessage("Ошибка получения доступа! Предоставте разрешения в настройках!");
+                    d.setTitle("Ошибка");
+                    d.setPositiveButton("Выход", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            finish();
+                        }
+                    });
+
+                    d.show();
+                    finish();
+
+                }
+            }
+            default: {
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         setTitle(R.string.app_name);
+        context = getBaseContext();
         this.progressBar = findViewById(R.id.progressBar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+
+
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.READ_CONTACTS,
+                            Manifest.permission.INTERNET,
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    },
+                    PERMISSION_REQUEST_CODE);
+            do {
+            }
+            while ((ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED));
+        }
+
+        AppUpdaterUtils appUpdaterUtils = new AppUpdaterUtils(this)
+                .setUpdateFrom(UpdateFrom.GITHUB)
+                .setGitHubUserAndRepo("SimbyOS", "DIDAN")
+
+                .withListener(new AppUpdaterUtils.UpdateListener() {
+                    @Override
+                    public void onSuccess(Update update, Boolean isUpdateAvailable) {
+                        Log.d("UpdateEngine", Boolean.toString(isUpdateAvailable) + update.getLatestVersion());
+                        if (isUpdateAvailable) {
+                            final String urlDownloadApk = "http://github.com/SimbyOS/DIDAN/releases/download/" + update.getLatestVersion() + "/DIDAN.apk";
+                            AlertDialog.Builder d = new AlertDialog.Builder(MainActivity.this, R.style.Theme_AppCompat_Light_Dialog);
+                            d.setTitle("Доступно обновление!");
+
+                            d.setMessage("Доступно обновление DIDAN Client " + update.getLatestVersion() + "" +
+                                    " Настоятельно рекомендуем обновиться. Вас ждут улучшение стабильности и новые функции!" +
+                                    "");
+                            d.setPositiveButton("Обновить", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    //get destination to update file and set Uri
+                                    //TODO: First I wanted to store my update .apk file on internal storage for my app but apparently android does not allow you to open and install
+                                    //aplication with existing package from there. So for me, alternative solution is Download directory in external storage. If there is better
+                                    //solution, please inform us in comment
+                                    String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/";
+                                    String fileName = "DIDAN.apk";
+                                    destination += fileName;
+                                    final Uri uri = Uri.parse("file://" + destination);
+                                    File file = new File(destination);
+                                    if (file.exists())
+                                        file.delete();
+
+                                    //get url of app on server
+                                    String url = urlDownloadApk;
+
+                                    //set downloadmanager
+                                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                                    request.setDescription("Обновление DIDAN Client");
+                                    request.setTitle("Обновление");
+
+                                    //set destination
+                                    request.setDestinationUri(uri);
+
+                                    // get download service and enqueue file
+                                    final DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                                    final long downloadId = manager.enqueue(request);
+
+                                    //set BroadcastReceiver to install app when .apk is downloaded
+                                    BroadcastReceiver onComplete = new BroadcastReceiver() {
+                                        public void onReceive(Context ctxt, Intent intent) {
+                                            Intent install = new Intent(Intent.ACTION_VIEW);
+                                            install.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                            install.setDataAndType(uri,
+                                                    manager.getMimeTypeForDownloadedFile(downloadId));
+                                            startActivity(install);
+
+                                            unregisterReceiver(this);
+                                            finish();
+                                        }
+                                    };
+                                    registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+                                }
+                            });
+
+                            d.setNegativeButton("Позже", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+
+                                }
+                            }).show();
+
+                        }
+
+                    }
+
+                    @Override
+                    public void onFailed(AppUpdaterError error) {
+                        Log.d("UpdateEngine", "Something went wrong");
+                    }
+                });
+
+        appUpdaterUtils.start();
+
 
         navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -215,6 +387,56 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public class UpdateApp extends AsyncTask<String, Void, Void> {
+        private Context context;
+
+        public void setContext(Context contextf) {
+            context = contextf;
+        }
+
+        @Override
+        protected Void doInBackground(String... arg0) {
+            try {
+                URL url = new URL(arg0[0].toString()); // Your given URL.
+
+                HttpURLConnection c = (HttpURLConnection) url.openConnection();
+                c.setRequestMethod("GET");
+                c.setDoOutput(true);
+                c.connect(); // Connection Complete here.!
+
+                //Toast.makeText(getApplicationContext(), "HttpURLConnection complete.", Toast.LENGTH_SHORT).show();
+
+                String PATH = Environment.getExternalStorageDirectory() + "/download/";
+                File file = new File(PATH); // PATH = /mnt/sdcard/download/
+                if (!file.exists()) {
+                    file.mkdirs();
+                }
+                File outputFile = new File(file, "DIDAN.apk");
+                FileOutputStream fos = new FileOutputStream(outputFile);
+
+                //      Toast.makeText(getApplicationContext(), "SD Card Path: " + outputFile.toString(), Toast.LENGTH_SHORT).show();
+
+                InputStream is = c.getInputStream(); // Get from Server and Catch In Input Stream Object.
+
+                byte[] buffer = new byte[1024];
+                int len1 = 0;
+                while ((len1 = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, len1); // Write In FileOutputStream.
+                }
+                fos.close();
+                is.close();//till here, it works fine - .apk is download to my sdcard in download file.
+                // So plz Check in DDMS tab and Select your Emualtor.
+
+                //Toast.makeText(getApplicationContext(), "Download Complete on SD Card.!", Toast.LENGTH_SHORT).show();
+                //download the APK to sdcard then fire the Intent.
+            } catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Error! " +
+                        e.toString(), Toast.LENGTH_LONG).show();
+            }
+            return null;
+        }
     }
 
     /**
